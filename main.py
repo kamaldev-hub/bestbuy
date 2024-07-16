@@ -24,8 +24,14 @@ def start(store):
         elif choice == '3':
             order_list = []
             while True:
-                products = store.get_all_products()
-                for i, product in enumerate(products, 1):
+                # Only get products that are in stock
+                in_stock_products = [p for p in store.get_all_products() if p.quantity > 0]
+
+                if not in_stock_products:
+                    print("Sorry, all products are out of stock.")
+                    break
+
+                for i, product in enumerate(in_stock_products, 1):
                     print(f"{i}. {product.show()}")
 
                 print("\nWhen you want to finish order, enter empty text.")
@@ -35,18 +41,27 @@ def start(store):
 
                 try:
                     product_index = int(product_choice) - 1
-                    if 0 <= product_index < len(products):
+                    if 0 <= product_index < len(in_stock_products):
+                        product = in_stock_products[product_index]
                         quantity = int(input("What amount do you want? "))
-                        order_list.append((products[product_index], quantity))
-                        print("Product added to list!")
+                        if quantity <= 0:
+                            print("Please enter a positive quantity.")
+                        elif quantity > product.quantity:
+                            print(f"Sorry, we only have {product.quantity} in stock.")
+                        else:
+                            order_list.append((product, quantity))
+                            print("Product added to list!")
                     else:
                         print("Invalid product number.")
                 except ValueError:
                     print("Invalid input. Please enter a number.")
 
             if order_list:
-                total_price = store.order(order_list)
-                print(f"Order made! Total payment: ${total_price:.2f}")
+                try:
+                    total_price = store.order(order_list)
+                    print(f"Order made! Total payment: ${total_price:.2f}")
+                except ValueError as e:
+                    print(f"Error processing order: {e}")
             else:
                 print("No order placed.")
 
@@ -60,10 +75,11 @@ def start(store):
 
 def main():
     # setup initial stock of inventory
-    product_list = [Product("MacBook Air M2", price=1450, quantity=100),
-                    Product("Bose QuietComfort Earbuds", price=250, quantity=500),
-                    Product("Google Pixel 7", price=500, quantity=250)
-                    ]
+    product_list = [
+        Product("MacBook Air M2", price=1450, quantity=100),
+        Product("Bose QuietComfort Earbuds", price=250, quantity=500),
+        Product("Google Pixel 7", price=500, quantity=250)
+    ]
     best_buy = Store(product_list)
 
     start(best_buy)
