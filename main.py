@@ -1,4 +1,5 @@
 from products import Product, NonStockedProduct, LimitedProduct
+from promotions import PercentageDiscount, SecondHalfPrice, BuyTwoGetOneFree
 from store import Store
 
 
@@ -82,8 +83,21 @@ def main():
         NonStockedProduct("Windows License", price=125),
         LimitedProduct("Shipping", price=10, quantity=250, maximum=1)
     ]
+
+    # Create promotion catalog
+    second_half_price = SecondHalfPrice("Second Half price!")
+    buy_two_get_one_free = BuyTwoGetOneFree("Buy 2, Get 1 Free!")
+    thirty_percent = PercentageDiscount("30% off!", percentage=30)
+
+    # Add promotions to products
+    product_list[0].set_promotion(second_half_price)
+    product_list[1].set_promotion(buy_two_get_one_free)
+    product_list[3].set_promotion(thirty_percent)
+
+    # Create the store with the product list
     best_buy = Store(product_list)
 
+    # Start the store interface
     start(best_buy)
 
 

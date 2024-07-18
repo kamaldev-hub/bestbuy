@@ -1,23 +1,28 @@
-from promotions import Promotion
+from promotions import Promotion, BuyTwoGetOneFree
 
 
 class Product:
     def __init__(self, name: str, price: float, quantity: int):
         if not name:
-            raise ValueError("Product name cannot be empty")
+            raise ValueError("Name cannot be empty")
         if price < 0:
             raise ValueError("Price cannot be negative")
+        if quantity < 0:
+            raise ValueError("Quantity cannot be negative")
+
         self.name = name
         self.price = price
         self.quantity = quantity
         self.active = True
-        self.promotion: Promotion = None
+        self.promotion = None
 
     def get_quantity(self) -> int:
         return self.quantity
 
     def set_quantity(self, quantity: int) -> None:
         self.quantity = quantity
+        if self.quantity == 0:
+            self.active = False
 
     def is_active(self) -> bool:
         return self.active
@@ -28,54 +33,48 @@ class Product:
     def deactivate(self) -> None:
         self.active = False
 
-    def get_promotion(self) -> Promotion:
-        return self.promotion
-
-    def set_promotion(self, promotion: Promotion):
-        self.promotion = promotion
-
     def show(self) -> str:
-        result = f"{self.name}, Price: {self.price}, Quantity: {self.quantity}"
-        if self.promotion:
-            result += f", Promotion: {self.promotion.name}"
-        return result
+        promotion_info = f", Promotion: {self.promotion.name}" if self.promotion else ""
+        return f"{self.name}, Price: {self.price}, Quantity: {self.quantity}{promotion_info}"
 
     def buy(self, quantity: int) -> float:
-        if not self.active:
-            raise ValueError("Product is not active")
         if quantity > self.quantity:
-            raise ValueError("Insufficient quantity")
+            raise ValueError("Not enough items in stock")
 
-        self.quantity -= quantity
+        if self.promotion:
+            total_price = self.promotion.apply_promotion(self, quantity)
+            # For "Buy 2, Get 1 Free" promotion
+            if isinstance(self.promotion, BuyTwoGetOneFree):
+                actual_quantity = quantity + (quantity // 2)
+            else:
+                actual_quantity = quantity
+        else:
+            total_price = self.price * quantity
+            actual_quantity = quantity
+
+        self.quantity -= actual_quantity  # Reduce the stock by the actual quantity
+
         if self.quantity == 0:
             self.active = False
 
-        if self.promotion:
-            return self.promotion.apply_promotion(self, quantity)
-        else:
-            return quantity * self.price
+        return total_price
+
+    def set_promotion(self, promotion: Promotion) -> None:
+        self.promotion = promotion
 
 
 class NonStockedProduct(Product):
     def __init__(self, name: str, price: float):
         super().__init__(name, price, quantity=0)
 
-    def set_quantity(self, quantity: int) -> None:
-        pass  # Ignores quantity changes
+    def show(self) -> str:
+        promotion_info = f", Promotion: {self.promotion.name}" if self.promotion else ""
+        return f"{self.name}, Price: {self.price}, Quantity: Unlimited{promotion_info}"
 
     def buy(self, quantity: int) -> float:
-        if not self.active:
-            raise ValueError("Product is not active")
         if self.promotion:
             return self.promotion.apply_promotion(self, quantity)
-        else:
-            return quantity * self.price
-
-    def show(self) -> str:
-        result = f"{self.name}, Price: {self.price}, Not in stock"
-        if self.promotion:
-            result += f", Promotion: {self.promotion.name}"
-        return result
+        return self.price * quantity
 
 
 class LimitedProduct(Product):
@@ -83,23 +82,11 @@ class LimitedProduct(Product):
         super().__init__(name, price, quantity)
         self.maximum = maximum
 
-    def buy(self, quantity: int) -> float:
-        if not self.active:
-            raise ValueError("Product is not active")
-        if quantity > self.maximum:
-            raise ValueError(f"Maximum purchase quantity exceeded (Maximum: {self.maximum})")
-        if quantity > self.quantity:
-            raise ValueError("Insufficient quantity available")
-        self.quantity -= quantity
-        if self.quantity == 0:
-            self.active = False
-        if self.promotion:
-            return self.promotion.apply_promotion(self, quantity)
-        else:
-            return quantity * self.price
-
     def show(self) -> str:
-        result = f"{self.name}, Price: {self.price}, Quantity: {self.quantity}, Maximum per order: {self.maximum}"
-        if self.promotion:
-            result += f", Promotion: {self.promotion.name}"
-        return result
+        promotion_info = f", Promotion: {self.promotion.name}" if self.promotion else ""
+        return f"{self.name}, Price: {self.price}, Quantity: {self.quantity}, Maximum: {self.maximum}{promotion_info}"
+
+    def buy(self, quantity: int) -> float:
+        if quantity > self.maximum:
+            raise ValueError(f"Cannot buy more than {self.maximum} items at once")
+        return super().buy(quantity)

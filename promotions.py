@@ -24,9 +24,9 @@ class SecondHalfPrice(Promotion):
         super().__init__(name)
 
     def apply_promotion(self, product, quantity: int) -> float:
-        full_price_items = quantity // 2 + quantity % 2
-        half_price_items = quantity // 2
-        return (full_price_items * product.price) + (half_price_items * product.price * 0.5)
+        full_price_count = (quantity + 1) // 2
+        half_price_count = quantity - full_price_count
+        return (full_price_count * product.price) + (half_price_count * product.price / 2)
 
 
 class BuyTwoGetOneFree(Promotion):
@@ -34,4 +34,5 @@ class BuyTwoGetOneFree(Promotion):
         super().__init__(name)
 
     def apply_promotion(self, product, quantity: int) -> float:
-        return product.price * (quantity - quantity // 3)
+        regular_price_count = quantity - (quantity // 3)
+        return product.price * regular_price_count
